@@ -1,7 +1,7 @@
 rss2pdf
 ========
 
-* Convert rss feeds to pdfs
+* Convert rss feeds to pdfs and uses etag and last modified time to avoid redownloading feeds.
 
 Quick usage overview:
 
