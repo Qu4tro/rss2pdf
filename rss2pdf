@@ -8,20 +8,32 @@ import os
 import feedparser
 import click
 
+import logging
+logger = logging.getLogger(__name__)
+level = logging.DEBUG
+try:
+    import coloredlogs
+    coloredlogs.install(level=level)
+except ImportError:
+    logging.basicConfig(level=level)
+    logger.info("Not using coloredlogs, because coloredlogs is not installed.")
+logger.disabled = 1
+
 
 def save_feed(feed_location, output_dir):
 
     def get_etag(etag):
+        logger.debug("Etag: " + etag)
+        logger.info("Grabbing etag")
         with open(etag) as f:
             lines = f.readlines()[:2]
-            try:
-                return lines[0], lines[1]
-            except IndexError:
-                raise RuntimeError('Invalid etag file')
+            return lines[0], lines[1]
 
     def save_etag(feed, etag):
 
-        with open(etag, 'w') as f:
+        logger.debug("Etag: " + etag)
+        logger.info("Saving etag")
+        with open(etag) as f:
             try:
                 f.write(feed.etag)
             except AttributeError:
@@ -39,10 +51,13 @@ def save_feed(feed_location, output_dir):
         feed = feedparser.parse(feed_location,
                                 etag=etag,
                                 modified=lmodified)
-    except (RuntimeError, IOError):
+    except (IndexError, IOError):
+        logger.info("Failed to get etag!")
         feed = feedparser.parse(feed_location)
 
+    logger.debug("Nº entries: " + str(len(feed.entries)))
     for entry in feed.entries:
+        logger.debug("Entry: " + entry['title'])
         output = os.path.join(output_dir, entry['title'] + '.pdf')
 
         with open(os.devnull, 'wb') as null:
@@ -63,5 +78,6 @@ def main(feed, directory):
     save_feed(feed_location=feed, output_dir=directory)
 
 
-if __name__ == '__main__':
-    main()
+main()
+# if __name__ == '__main__':
+#     main()
