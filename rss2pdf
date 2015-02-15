@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+# encoding: utf-8
+
+import subprocess
+import os.path
+import os
+
+import feedparser
+import click
+
+
+def save_feed(feed_location, output_dir):
+
+    def get_etag(etag):
+        with open(etag) as f:
+            lines = f.readlines()[:2]
+            try:
+                return lines[0], lines[1]
+            except IndexError:
+                raise RuntimeError('Invalid etag file')
+
+    def save_etag(feed, etag):
+
+        with open(etag, 'w') as f:
+            try:
+                f.write(feed.etag)
+            except AttributeError:
+                pass
+            f.write('\n')
+            try:
+                f.write(feed.modified)
+            except AttributeError:
+                pass
+
+    etag_file = "".join(os.path.join(output_dir, '.etag'))
+
+    try:
+        etag, lmodified = get_etag(etag_file)
+        feed = feedparser.parse(feed_location,
+                                etag=etag,
+                                modified=lmodified)
+    except (RuntimeError, IOError):
+        feed = feedparser.parse(feed_location)
+
+    for entry in feed.entries:
+        output = os.path.join(output_dir, entry['title'] + '.pdf')
+
+        with open(os.devnull, 'wb') as null:
+            subprocess.call(["wkhtmltopdf", str(entry['link']), output],
+                            stdout=null, stderr=null)
+
+    save_etag(feed, etag_file)
+
+
+@click.command()
+@click.option('--feed', help='Url of the feed to download', required=True,
+              type=click.STRING)
+@click.option('--directory', help='Output directory', show_default=True,
+              default=os.getcwd(),
+              type=click.Path(exists=True, writable=True, resolve_path=True))
+def main(feed, directory):
+
+    save_feed(feed_location=feed, output_dir=directory)
+
+
+if __name__ == '__main__':
+    main()
