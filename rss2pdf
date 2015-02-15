@@ -33,7 +33,7 @@ def save_feed(feed_location, output_dir):
 
         logger.debug("Etag: " + etag)
         logger.info("Saving etag")
-        with open(etag) as f:
+        with open(etag, 'w') as f:
             try:
                 f.write(feed.etag)
             except AttributeError:
